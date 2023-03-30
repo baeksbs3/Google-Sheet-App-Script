@@ -1,0 +1,54 @@
+
+function onFormSubmit(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = e.source.getActiveSheet().getName();
+  var sheet = ss.getSheetByName(sheetName);
+  console.log(sheet)
+  
+  var lastRow = sheet.getLastRow();
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var questionIndex = headers.indexOf("질문"); // "질문" 열(column)의 인덱스 가져오기
+  var questionColumn = String.fromCharCode(65 + questionIndex); // 질문 열(column)의 문자열 표현 가져오기
+  var orderTypeIndex = headers.indexOf("결제 타입 (Transaction Type)"); // "주문 유형" 열(column)의 인덱스 가져오기
+  var orderType = sheet.getRange(lastRow, orderTypeIndex+1).getValue(); // "주문 유형" 열(column)에서 새로운 응답의 값 가져오기
+  var row = e.range.getRow(); // 새로운 응답이 제출된 행의 번호 가져오기
+  var apFormula 
+  if (orderType === "환불 (Refund)" || orderType==="미수금 결제 (Payment for Balance)"){
+    apFormula= 0
+  }else {
+    apFormula = '=($E' + row + '*$F' + row + ')+($H' + row + '*$I' + row + ')+($K' + row + '*$L' + row + ')+($N' + row + '*$O' + row + ')+($Q' + row + '*$R' + row + ')+($T' + row + '*$U' + row + ')+($W' + row + '*$X' + row + ')+($Z' + row + '*$AA' + row + ')+($AC' + row + '*$AD' + row + ')+($AF' + row + '*$AG' + row + ')'
+  }
+  var aqFormula = '=($AI' + row + ')-($AM' + row + ')+($AN' + row + ')';
+  var apRange = sheet.getRange("AP" + lastRow);
+  var aqRange = sheet.getRange("AQ" + lastRow);
+  apRange.setFormula(apFormula);
+  aqRange.setFormula(aqFormula);
+
+  updateReportSheet(ss, sheet, lastRow);
+}
+
+function updateReportSheet(ss, sheet, lastRow) {
+  var reportSheet = ss.getSheetByName("table");
+  var lastReportRow = reportSheet.getLastRow();
+  var sheetName = sheet.getName(); // get the name of the sheet that triggered the form submit event
+  var responseSheet = ss.getSheetByName(sheetName + " Responses"); // get the corresponding response sheet
+  var data = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var aValue = data[0];
+  var bValue = data[1];
+  var apValue = data[data.length - 2];
+  var aqValue = data[data.length - 1];
+  if(aqValue < 0 || apValue-aqValue==0 || apValue-aqValue< 0){
+    var formulaValue = 0;
+  } else{
+  var formulaValue = apValue - aqValue;
+  }
+  
+
+  var newData = [[aValue, bValue, apValue, aqValue, formulaValue]];
+  var reportRange = reportSheet.getRange(lastReportRow + 1, 1, newData.length, newData[0].length);
+  reportRange.setValues(newData);
+  
+  // update the corresponding response sheet
+  var responseRange = responseSheet.getRange(lastRow, 1, newData.length, newData[0].length);
+  responseRange.setValues(newData);
+}
