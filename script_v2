@@ -1,0 +1,148 @@
+function onFormSubmit(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = e.source.getActiveSheet().getName();
+  var sheet = ss.getSheetByName(sheetName);
+  var lastRow = sheet.getLastRow();
+  var values = sheet.getRange(lastRow,1,1,sheet.getLastColumn()).getValues()[0];
+  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0]
+  var response = {}
+   for (var i = 0; i < headers.length; i++) {
+    response[headers[i]] = values[i];
+  }
+
+  var date = values[0] ? values [0] : ''; // Timestamp A
+  var officeName = values[2] ? values[2] : ''; //OfficeName C
+  var transactionType = values[3] ? values[3] : ''; //결제 타입 (Transaction Type) = column D
+  var totalAmount = values[82] ? values[82] : ''; //총 금액 (total amount USD) = column CE
+  var paymentType = values[83] ? values[83] : ''; //입금 타입 (Payment type) = column CF
+  var installmentPromiseDate =  values[87] ? values[87]:''; //완납 약속 일자 
+  var installmentPaymentDate = values[90] ? values[90]:''; //분할 납부 결제일
+  var installmentPaymentSelect = values[89] ? values[89]:''; //분할 납부 회수 선택
+  var installmentPaymentNumber = values[91] ? values[91]:''; //분할 납부 회차 
+  var installmentPaymentAmount = values[92] ? values[92] : '';//분할 납부 금액  = column CO
+  var balance = values[93] ? values[93] : ''; //잔금 = column CP
+  var remainingPayments = values[94] ? values[94] : ''; //잔여 납부 회차 = column CQ 
+  var balanceToPay = values[98] ? values[98] : ''; //미수금 (balance to pay) = column CU 
+  var fullPaymentPesoRate = values[85] ? values[85] : ''; //Full Payment Peso 결제시 환율 입력 = colum CH
+  var fullPaymentPesoDeposit = values[86] ? values[86] : ''; //Full Payment Peso Deposit = column CI
+  var installmentPaymentPesoRate = values[96] ? values[96] : ''; //Installment Payment Peso 결제시 환율 입력 = column CS
+  var installmentPaymentPesoDeposit = values[97] ? values[97] : ''; //Installment Payment Peso Deposit = column CT
+  var balancePaymentPesoRate = values[100] ? values[100] : ''; //Balance Payment Peso 결제시 환율 입력 = column CW
+  var balancePaymentPesoDeposit = values[101] ? values[101] : ''; //Balance Payment Peso Deposit = column CX
+  var rateToUpdate = '' // 환율
+  var pesoDepositToUpdate = ''; // 페소입금액
+  var salesToUpdate = ''; // 매출
+  var depositToUpdate = ''; // 입금
+  var balanceToUpdate = ''; // 미수  
+  var refund= ''; // 환불
+ 
+
+  // 결제 타입, 입금 타입에 따라 매출, 입금, 미수 업데이트 
+  if(transactionType==='주문 (Order)'){
+    salesToUpdate= totalAmount
+    if (paymentType === '일시불 (full-payment)'){
+      depositToUpdate = totalAmount
+    } else if ( paymentType === '분할 납부 (installment payment)'){
+      depositToUpdate = installmentPaymentAmount
+    }
+  } else if ( transactionType === '미수금 결제 (Payment for Balance)'){
+    depositToUpdate = balanceToPay
+    balanceToUpdate = -balanceToPay
+  } else if ( transactionType === '환불 (Refund)'){
+    balanceToUpdate = -totalAmount
+    refund = totalAmount
+  } else if ( transactionType === '분할납부 결제 (Installment Payment)' && remainingPayments=== '미수 (balance payment)'){
+    balanceToUpdate = balance
+    depositToUpdate = installmentPaymentAmount
+  }
+  // 페소로 결제 했을 경우 환율과 입금한 금액 업데이트 
+  if (fullPaymentPesoRate != '') {
+      rateToUpdate = fullPaymentPesoRate;
+    } else if (installmentPaymentPesoRate != '') {
+      rateToUpdate = installmentPaymentPesoRate;
+    } else if (balancePaymentPesoRate != '') {
+      rateToUpdate = balancePaymentPesoRate;
+    } else {
+      rateToUpdate= ''
+      }
+  if (fullPaymentPesoDeposit!= '') {
+      pesoDepositToUpdate = fullPaymentPesoDeposit;
+    } else if (installmentPaymentPesoDeposit != '') {
+      pesoDepositToUpdate = installmentPaymentPesoDeposit;
+    } else if (balancePaymentPesoDeposit != '') {
+      pesoDepositToUpdate = balancePaymentPesoDeposit;
+    }else {
+      rateToUpdate= ''
+      }
+
+var rangeToUpdate;
+
+// Update 환율 (rateToUpdate) in column CZ
+rangeToUpdate = sheet.getRange('CZ' + lastRow);
+rangeToUpdate.setValue(rateToUpdate);
+
+// Update 페소입금액 (pesoDepositToUpdate) in column DA
+rangeToUpdate = sheet.getRange('DA' + lastRow);
+rangeToUpdate.setValue(pesoDepositToUpdate);
+
+// Update 매출 (salesToUpdate) in column DB
+rangeToUpdate = sheet.getRange('DB' + lastRow);
+rangeToUpdate.setValue(salesToUpdate);
+
+// Update 입금 (depositToUpdate) in column DC
+rangeToUpdate = sheet.getRange('DC' + lastRow);
+rangeToUpdate.setValue(depositToUpdate);
+
+// Update 미수 (balanceToUpdate) in column DD
+rangeToUpdate = sheet.getRange('DD' + lastRow);
+rangeToUpdate.setValue(balanceToUpdate);
+  var exchangeRate = rateToUpdate
+  var pesoDepositAmount = pesoDepositToUpdate
+  var revenue = salesToUpdate
+  var deposit = depositToUpdate
+  var outstanding = balanceToUpdate
+  
+console.log('date:', date);
+console.log('officeName:', officeName);
+console.log('transactionType:', transactionType);
+console.log('totalAmount:', totalAmount);
+console.log('paymentType:', paymentType);
+console.log('installmentPromiseDate:', installmentPromiseDate);
+console.log('installmentPaymentDate:', installmentPaymentDate);
+console.log('installmentPaymentSelect:', installmentPaymentSelect);
+console.log('installmentPaymentNumber:', installmentPaymentNumber);
+console.log('installmentPaymentAmount:', installmentPaymentAmount);
+console.log('balance:', balance);
+console.log('remainingPayments:', remainingPayments);
+console.log('balanceToPay:', balanceToPay);
+console.log('fullPaymentPesoRate:', fullPaymentPesoRate);
+console.log('fullPaymentPesoDeposit:', fullPaymentPesoDeposit);
+console.log('installmentPaymentPesoRate:', installmentPaymentPesoRate);
+console.log('installmentPaymentPesoDeposit:', installmentPaymentPesoDeposit);
+console.log('balancePaymentPesoRate:', balancePaymentPesoRate);
+console.log('balancePaymentPesoDeposit:', balancePaymentPesoDeposit);
+console.log('rateToUpdate:', rateToUpdate);
+console.log('pesoDepositToUpdate:', pesoDepositToUpdate);
+console.log('salesToUpdate:', salesToUpdate);
+console.log('depositToUpdate:', depositToUpdate);
+console.log('balanceToUpdate:', balanceToUpdate);
+console.log('refund:', refund);
+console.log('exchangeRate:', exchangeRate);
+console.log('pesoDepositAmount:', pesoDepositAmount);
+console.log('revenue:', revenue);
+console.log('deposit:', deposit);
+console.log('outstanding:', outstanding);
+
+
+
+// 통합시트에 불러온 값 입력하기
+
+var masterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("통합시트");
+var masterlastRow = masterSheet.getLastRow();
+Logger.log("masterlastRow: " + masterlastRow); // Log masterlastRow
+var updateRow = masterSheet.getRange(masterlastRow + 1, 1, 1, 18);
+var valuesToSet = [[date, officeName, transactionType, paymentType, exchangeRate, pesoDepositAmount, installmentPromiseDate, installmentPaymentDate, installmentPaymentSelect, installmentPaymentNumber, installmentPaymentAmount, remainingPayments, balance, refund, balanceToPay, revenue, deposit, outstanding]];
+updateRow.setValues(valuesToSet);
+
+
+}
