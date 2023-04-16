@@ -10,7 +10,7 @@
 javascript, Google Apps Script, Google Form, Google Sheet
 
 ## 기획서 상세 
-[No.1 NLTS Trading Inc 워크프로세스 자동화 프로젝트 ] (https://www.notion.so/subinbaek/No-1-NLTS-Trading-Inc-8579398dc064447485866e45afc9a5fc)
+[No.1 NLTS Trading Inc 워크프로세스 자동화 프로젝트 ](https://www.notion.so/subinbaek/No-1-NLTS-Trading-Inc-8579398dc064447485866e45afc9a5fc)
 
 
 
